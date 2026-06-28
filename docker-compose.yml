@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   mongo:
@@ -13,7 +12,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: aluguelVeiculo-bucket
+    container_name: aluguel-veiculo-bucket
     ports:
       - "9000:9000"  
       - "9001:9001"  
@@ -28,7 +27,7 @@ services:
 
   api:
     build: .
-    container_name: aluguelVeiculo-api
+    container_name: aluguel-veiculo-api
     ports:
       - "${APP_PORT}:8000"
     volumes:

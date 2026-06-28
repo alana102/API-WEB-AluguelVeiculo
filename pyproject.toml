@@ -7,8 +7,10 @@ requires-python = ">=3.12"
 dependencies = [
     "beanie>=2.1.0",
     "fastapi[standard]>=0.138.1",
+    "miniopy-async>=1.23.5",
     "motor>=3.7.1",
     "pydantic-settings>=2.14.2",
+    "pymongo>=4.17.0",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.32",
     "uvicorn>=0.49.0",

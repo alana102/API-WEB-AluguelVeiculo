@@ -1,10 +1,29 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
 
-app = FastAPI(
-    title="Aluguel de Veículos",
-    description="API Web de aluguel de veículos com FastAPI, MongoDB e MinIO"
-)
+from app.config.settings import settings
+from app.config.minio_client import init_minio
+from app.modelos.documento import DocumentoModel
+from app.rotas.documento_rotas import rotas as documento_rotas
 
-@app.get("/")
-async def root():
-    return {"message": "Ambiente configurado! Banco de dados e MinIO em breve."}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    client = AsyncIOMotorClient(settings.MONGODB_URL)
+    client.__dict__["append_metadata"] = lambda *args, **kwargs: None
+    db_name = settings.MONGODB_URL.split("/")[-1].split("?")[0]
+    db = client[db_name]
+
+    await init_beanie(
+        database=db, 
+        document_models=[DocumentoModel]
+    )
+
+    await init_minio()
+
+    yield
+
+app = FastAPI(title="API WEB - Aluguel de Veículos", lifespan=lifespan)
+
+app.include_router(documento_rotas)
