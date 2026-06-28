@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
-from typing import Optional
 from beanie import Document as BeanieDocument
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 class DocumentoModel(BeanieDocument):
     original_filename: str = Field(..., description="Nome original do ficheiro enviado")
@@ -11,7 +10,7 @@ class DocumentoModel(BeanieDocument):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Data e hora do envio")
 
     class Settings:
-        name = "documents"
+        name = "documentos"
 
     class Config:
         json_schema_extra = {

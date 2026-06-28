@@ -1,5 +1,4 @@
 import io
-from datetime import datetime, timezone
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from fastapi.responses import StreamingResponse
 from miniopy_async.error import S3Error
@@ -18,11 +17,9 @@ async def upload_documento(file: UploadFile = File(...)):
         content_type = file.content_type or "application/octet-stream"
         extension = original_filename.split(".")[-1] if "." in original_filename else ""
         
-        # Lê o conteúdo para calcular o tamanho real em bytes
         file_content = await file.read()
         size_bytes = len(file_content)
 
-        # 1. Cria primeiro o metadado no MongoDB para obter o ID único
         document_meta = DocumentoModel(
             original_filename=original_filename,
             content_type=content_type,
@@ -31,10 +28,8 @@ async def upload_documento(file: UploadFile = File(...)):
         )
         await document_meta.insert()
 
-        # 2. Usa o ID gerado pelo MongoDB como o nome físico do arquivo no MinIO
         physical_filename = f"{str(document_meta.id)}.{extension}" if extension else str(document_meta.id)
 
-        # 3. Envia o arquivo físico para o MinIO
         await minio_client.put_object(
             bucket_name=settings.MINIO_BUCKET_NAME,
             object_name=physical_filename,

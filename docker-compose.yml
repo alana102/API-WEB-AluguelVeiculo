@@ -5,6 +5,7 @@ services:
     container_name: aluguel-veiculo
     ports:
       - "27017:27017"
+    command: mongod --storageEngine wiredTiger --bind_ip_all
     volumes:
       - mongo_data:/data/db
     networks:
