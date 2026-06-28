@@ -20,7 +20,7 @@ Trabalho 3 da disciplina de Desenvolvimento de Software para Persistência
         class Veiculo{
             +str id
             +Link~Ofertador~ ofertador
-            +str placo
+            +str placa
             +str modelo
             +str status
         }
@@ -29,7 +29,7 @@ Trabalho 3 da disciplina de Desenvolvimento de Software para Persistência
             +Link~Cliente~ cliente
             +Link~Veiculo~ veiculo
             +datetime data_inicio
-            +datetime datafim
+            +datetime data_fim
             +str status
             +Pagamento pagamento
         }
