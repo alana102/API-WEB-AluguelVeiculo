@@ -15,7 +15,7 @@ class Aluguel(Document):
     data_inicio: datetime
     data_fim: datetime
     status: str = "Em andamento"
-    pagamento: Pagamento
+    pagamento: Pagamento | None
 
     class Settings:
         name = "alugueis"

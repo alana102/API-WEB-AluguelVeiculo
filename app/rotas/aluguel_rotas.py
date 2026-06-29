@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, status
-from fastapi_pagination import Page
+from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.beanie import apaginate
 from beanie import PydanticObjectId
 from datetime import datetime, timezone
@@ -40,7 +40,8 @@ async def criar_aluguel(aluguel_in: CriarAluguel):
         **aluguel_in.model_dump(exclude={"id_cliente", "id_veiculo"}),
         cliente=cliente,
         veiculo=veiculo,
-        status="Em andamento"
+        status="Em andamento",
+        pagamento=None
     )
     await novo_aluguel.insert()
     veiculo.status = "Alugado"
@@ -73,7 +74,7 @@ async def atualizar_aluguel(id: PydanticObjectId, aluguel_atualizado: AtualizarA
 
 @router.post("/{id}/pagar", response_model=Aluguel)
 async def pagar_aluguel(id:PydanticObjectId, pagamento_in: CriarPagamento):
-    aluguel = await Aluguel.get(id, fetch_links=True)
+    aluguel = await Aluguel.get(id)
     if not aluguel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -89,11 +90,12 @@ async def pagar_aluguel(id:PydanticObjectId, pagamento_in: CriarPagamento):
         **pagamento_in.model_dump(),
         data_pagamento = datetime.now(timezone.utc)
     )
+    veiculo_real = await aluguel.veiculo.fetch()
     aluguel.pagamento = novo_pagamento
     aluguel.status = "Concluído"
 
-    aluguel.veiculo.status = "Disponível"
-    await aluguel.veiculo.save()
+    veiculo_real.status = "Disponível"
+    await veiculo_real.save()
 
     await aluguel.save()
     return aluguel
@@ -106,12 +108,14 @@ async def deletar_aluguel(id: PydanticObjectId):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Aluguel não encontrado"
         )
+    veiculo_real = await aluguel.veiculo.fetch()
+    veiculo_real.status = "Disponível"
     await aluguel.delete()
     return {"message":"Aluguel deletado"}
 
 @router.get("/{id}", response_model=Aluguel)
 async def buscar_aluguel(id: PydanticObjectId):
-    aluguel = await Aluguel.get(id, fetch_links=True)
+    aluguel = await Aluguel.get(id)
     if not aluguel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -120,5 +124,12 @@ async def buscar_aluguel(id: PydanticObjectId):
     return aluguel
 
 @router.get("/", response_model=Page[Aluguel])
-async def listar_aluguel():
-    return await apaginate(Aluguel.find_all(fetch_links=True))
+async def listar_aluguel(params: Params = Depends()):
+    try:
+        return await apaginate(Aluguel, params)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao listar documentos: {str(e)}"
+        )
+    # return await apaginate(Aluguel.find_all(fetch_links=True))

@@ -1,6 +1,6 @@
 import io
-from fastapi import APIRouter, UploadFile, File, HTTPException, status
-from fastapi_pagination import Page
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
+from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.beanie import apaginate
 from beanie import PydanticObjectId
 
@@ -74,8 +74,8 @@ async def deletar_veiculo(id: PydanticObjectId):
     return {"message":"Veículo deletado"}
 
 @router.get("/{id}", response_model=Veiculo)
-async def buscar_veiculo(id: PydanticObjectId):
-    veiculo = await Veiculo.get(id, fetch_links=True)
+async def buscar_veiculo(id: str):
+    veiculo = await Veiculo.get(id)
     if not veiculo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -84,8 +84,15 @@ async def buscar_veiculo(id: PydanticObjectId):
     return veiculo
 
 @router.get("/", response_model=Page[Veiculo])
-async def listar_veiculos():
-    return await apaginate(Veiculo.find_all(fetch_links=True))
+async def listar_veiculos(params: Params = Depends()):
+    try:
+        return await apaginate(Veiculo, params)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao listar veículos: {str(e)}"
+        )
+   # return await apaginate(Veiculo.find_all(fetch_links=True))
 
 @router.post("/{id}/documents", response_model=DocumentoModel, status_code=status.HTTP_201_CREATED)
 async def upload_documento_veiculo(id: PydanticObjectId, file: UploadFile = File(...)):
@@ -109,7 +116,8 @@ async def upload_documento_veiculo(id: PydanticObjectId, file: UploadFile = File
             original_filename=original_filename,
             content_type=content_type,
             extension=extension,
-            size_bytes=size_bytes
+            size_bytes=size_bytes,
+            veiculo=veiculo
         )
         await document_meta.insert()
 
