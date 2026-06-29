@@ -1,7 +1,8 @@
 from beanie import Document, Link
 from pydantic import BaseModel
 from datetime import datetime
-from modelos import Cliente, Veiculo
+from app.modelos.cliente import Cliente
+from app.modelos.veiculo import Veiculo
 
 class Pagamento(BaseModel):
     valor_total: float

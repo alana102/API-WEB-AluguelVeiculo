@@ -1,5 +1,5 @@
 from beanie import Document, Link
-from modelos import Ofertador
+from app.modelos.ofertador import Ofertador
 
 class Veiculo(Document):
     placa: str

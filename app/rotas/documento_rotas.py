@@ -1,5 +1,5 @@
 import io
-from fastapi import APIRouter, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from miniopy_async.error import S3Error
 
