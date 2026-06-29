@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "beanie>=2.1.0",
+    "fastapi-pagination>=0.15.15",
     "fastapi[standard]>=0.138.1",
     "miniopy-async>=1.23.5",
     "motor>=3.7.1",
