@@ -6,6 +6,7 @@ from beanie import init_beanie
 from app.config.settings import settings
 from app.config.minio_client import init_minio
 from app.modelos.documento import DocumentoModel
+from fastapi_pagination import add_pagination
 from app.rotas.documento_rotas import rotas as documento_rotas
 
 @asynccontextmanager
@@ -27,3 +28,5 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="API WEB - Aluguel de Veículos", lifespan=lifespan)
 
 app.include_router(documento_rotas)
+
+add_pagination(app)

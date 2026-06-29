@@ -179,6 +179,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "beanie" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "fastapi-pagination" },
     { name = "miniopy-async" },
     { name = "motor" },
     { name = "pydantic-settings" },
@@ -192,6 +193,7 @@ dependencies = [
 requires-dist = [
     { name = "beanie", specifier = ">=2.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.138.1" },
+    { name = "fastapi-pagination", specifier = ">=0.15.15" },
     { name = "miniopy-async", specifier = ">=1.23.5" },
     { name = "motor", specifier = ">=3.7.1" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
@@ -454,6 +456,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/60/c3/5cd0b824ca4b4fd073ce998321881ed68b8e0b85d441653eb1bd997c6fc0/fastapi_cloud_cli-0.21.0.tar.gz", hash = "sha256:463350dcbdcbb9b3baa32a99a3db0610f34a3ae143dd1d35a71173aec5dd245d", size = 93804, upload-time = "2026-06-24T15:23:07.554Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/15/a0/2ec3fb041fd41281073cb11ed6c63a33bc1f7a315554e26256a9709dbe47/fastapi_cloud_cli-0.21.0-py3-none-any.whl", hash = "sha256:ea49208fb301b2298e6ddaf9225163cf6dbb255bc9126001242f3cd21486bbe6", size = 76195, upload-time = "2026-06-24T15:23:06.609Z" },
+]
+
+[[package]]
+name = "fastapi-pagination"
+version = "0.15.15"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/79/826b79dd718b0d9a91f21c3cfed365e5ecf44bc31419615c4cebeebb9ada/fastapi_pagination-0.15.15.tar.gz", hash = "sha256:d6e9e4bc4d6e20709dcabc11b16056cd5cd184c995ee214b0190f6b81426fa0c", size = 614873, upload-time = "2026-06-16T17:25:44.055Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c5/02/2e794ea498515afdadf2891f89aaed404de3ed619dd9cbf1ca637f17df19/fastapi_pagination-0.15.15-py3-none-any.whl", hash = "sha256:dc828d7cd15614c650c284bd2c3a98a8a2d9ce340508be3970dc8986908a02aa", size = 65864, upload-time = "2026-06-16T17:25:42.734Z" },
 ]
 
 [[package]]

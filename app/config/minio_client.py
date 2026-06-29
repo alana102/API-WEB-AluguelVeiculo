@@ -14,8 +14,8 @@ async def init_minio():
         exists = await minio_client.bucket_exists(settings.MINIO_BUCKET_NAME)
         if not exists:
             await minio_client.make_bucket(settings.MINIO_BUCKET_NAME)
-            print(f"🪣 Bucket '{settings.MINIO_BUCKET_NAME}' criado com sucesso!")
+            print(f"Bucket '{settings.MINIO_BUCKET_NAME}' criado com sucesso!")
         else:
-            print(f"🪣 Bucket '{settings.MINIO_BUCKET_NAME}' já existe.")
+            print(f"Bucket '{settings.MINIO_BUCKET_NAME}' já existe.")
     except Exception as e:
         print(f"Erro ao conectar ou criar bucket no MinIO: {e}")
