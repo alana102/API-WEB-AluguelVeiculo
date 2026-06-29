@@ -13,7 +13,13 @@ from app.rotas.documento_rotas import rotas as documento_rotas
 async def lifespan(app: FastAPI):
     client = AsyncIOMotorClient(settings.MONGODB_URL)
     client.__dict__["append_metadata"] = lambda *args, **kwargs: None
-    db_name = settings.MONGODB_URL.split("/")[-1].split("?")[0]
+
+    url_limpa = settings.MONGODB_URL.rstrip("/")
+    db_name = url_limpa.split("/")[-1].split("?")[0]
+
+    if not db_name or "." in db_name:
+        db_name = "aluguel-veiculo"
+
     db = client[db_name]
 
     await init_beanie(
