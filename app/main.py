@@ -12,8 +12,9 @@ from app.modelos.veiculo import Veiculo
 from app.modelos.ofertador import Ofertador
 from app.modelos.cliente import Cliente
 from app.modelos.aluguel import Aluguel
+from app.modelos.comodidade import Comodidade
 
-from app.rotas import veiculo_rotas, cliente_rotas, ofertador_rotas, aluguel_rotas, documento_rotas
+from app.rotas import veiculo_rotas, cliente_rotas, ofertador_rotas, aluguel_rotas, documento_rotas, comodidade_rotas, consultas
 from app.excecoes import configurar_excecoes_globais
 
 @asynccontextmanager
@@ -31,7 +32,7 @@ async def lifespan(app: FastAPI):
 
     await init_beanie(
         database=db, 
-        document_models=[Veiculo, Ofertador, Cliente, Aluguel, DocumentoModel]
+        document_models=[Veiculo, Ofertador, Cliente, Aluguel, DocumentoModel, Comodidade]
     )
 
     await init_minio()
@@ -46,5 +47,7 @@ app.include_router(ofertador_rotas.router)
 app.include_router(veiculo_rotas.router)
 app.include_router(aluguel_rotas.router)
 app.include_router(documento_rotas.rotas)
+app.include_router(comodidade_rotas.router)
+app.include_router(consultas.router)
 
 add_pagination(app)
