@@ -1,9 +1,5 @@
 import io
-<<<<<<< HEAD
 from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
-=======
-from fastapi import APIRouter, HTTPException, status
->>>>>>> clara
 from fastapi.responses import StreamingResponse
 from miniopy_async.error import S3Error
 
