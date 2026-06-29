@@ -1,5 +1,9 @@
 import io
+<<<<<<< HEAD
 from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
+=======
+from fastapi import APIRouter, HTTPException, status
+>>>>>>> clara
 from fastapi.responses import StreamingResponse
 from miniopy_async.error import S3Error
 
@@ -11,45 +15,6 @@ from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.beanie import apaginate as beanie_paginate
 
 rotas = APIRouter(prefix="/documents", tags=["Documents"])
-
-@rotas.post("/", response_model=DocumentoModel, status_code=status.HTTP_201_CREATED)
-async def upload_documento(file: UploadFile = File(...)):
-    """Envia um novo arquivo para o MinIO e salva seus metadados no MongoDB."""
-    try:
-        original_filename = file.filename
-        content_type = file.content_type or "application/octet-stream"
-        extension = original_filename.split(".")[-1] if "." in original_filename else ""
-        
-        file_content = await file.read()
-        size_bytes = len(file_content)
-
-        document_meta = DocumentoModel(
-            original_filename=original_filename,
-            content_type=content_type,
-            extension=extension,
-            size_bytes=size_bytes
-        )
-        await document_meta.insert()
-
-        physical_filename = f"{str(document_meta.id)}.{extension}" if extension else str(document_meta.id)
-
-        await minio_client.put_object(
-            bucket_name=settings.MINIO_BUCKET_NAME,
-            object_name=physical_filename,
-            data=io.BytesIO(file_content),
-            length=size_bytes,
-            content_type=content_type
-        )
-
-        return document_meta
-
-    except Exception as e:
-        if 'document_meta' in locals() and document_meta.id:
-            await document_meta.delete()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao processar o arquivo: {str(e)}"
-        )
 
 @rotas.get("/{document_id}", response_model=DocumentoModel)
 async def get_documento_metadata(document_id: str):
