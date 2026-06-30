@@ -50,7 +50,7 @@ async def criar_aluguel(aluguel_in: CriarAluguel):
 
 @router.put("/{id}", response_model=Aluguel)
 async def atualizar_aluguel(id: PydanticObjectId, aluguel_atualizado: AtualizarAluguel):
-    aluguel = await Aluguel.get(id, fetch_links=True)
+    aluguel = await Aluguel.get(id)
 
     if not aluguel:
         raise HTTPException(

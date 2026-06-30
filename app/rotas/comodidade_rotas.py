@@ -80,7 +80,7 @@ async def listar_comodidades():
 @router.post("/veiculos/{id_veiculo}", response_model=Veiculo)
 async def associar_comodidade_ao_veiculo(id_veiculo: PydanticObjectId, dados: AssociarComodidade):
     """Associa uma comodidade existente a um veículo (relação N:N)."""
-    veiculo = await Veiculo.get(id_veiculo, fetch_links=True)
+    veiculo = await Veiculo.get(id_veiculo)
     if not veiculo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -109,7 +109,7 @@ async def associar_comodidade_ao_veiculo(id_veiculo: PydanticObjectId, dados: As
 @router.delete("/veiculos/{id_veiculo}/{id_comodidade}", response_model=Veiculo)
 async def remover_comodidade_do_veiculo(id_veiculo: PydanticObjectId, id_comodidade: PydanticObjectId):
     """Remove a associação entre um veículo e uma comodidade (relação N:N)."""
-    veiculo = await Veiculo.get(id_veiculo, fetch_links=True)
+    veiculo = await Veiculo.get(id_veiculo)
     if not veiculo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

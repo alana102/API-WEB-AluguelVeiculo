@@ -36,16 +36,16 @@ async def veiculos_por_ofertador(id_ofertador: PydanticObjectId):
     Retorna os veículos cadastrados por um ofertador específico, de forma paginada.
 
     Demonstra **listagem filtrada por relacionamento 1:N** (Ofertador → Veiculo).
-    Utiliza `fetch_links=True` para retornar os dados completos do ofertador junto.
     """
     ofertador = await Ofertador.get(id_ofertador)
     if not ofertador:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ofertador não encontrado.")
 
-    return await apaginate(Veiculo.find(
-        Veiculo.ofertador.id == id_ofertador,
-        fetch_links=True
-    ))
+    veiculos = await Veiculo.find(
+        Veiculo.ofertador.id == id_ofertador
+    ).to_list()
+
+    return {"total": len(veiculos), "veiculos": veiculos}
 
 
 @router.get("/alugueis/por-cliente/{id_cliente}", response_model=Page[Aluguel], summary="Aluguéis de um cliente")
@@ -59,10 +59,11 @@ async def alugueis_por_cliente(id_cliente: PydanticObjectId):
     if not cliente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado.")
 
-    return await apaginate(Aluguel.find(
-        Aluguel.cliente.id == id_cliente,
-        fetch_links=True
-    ))
+    alugueis = await Aluguel.find(
+        Aluguel.cliente.id == id_cliente
+    ).to_list()
+
+    return {"total": len(alugueis), "alugueis": alugueis}
 
 
 @router.get("/alugueis/por-veiculo/{id_veiculo}", response_model=Page[Aluguel], summary="Aluguéis de um veículo")
@@ -76,10 +77,11 @@ async def alugueis_por_veiculo(id_veiculo: PydanticObjectId):
     if not veiculo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veículo não encontrado.")
 
-    return await apaginate(Aluguel.find(
-        Aluguel.veiculo.id == id_veiculo,
-        fetch_links=True
-    ))
+    alugueis = await Aluguel.find(
+        Aluguel.veiculo.id == id_veiculo
+    ).to_list()
+
+    return {"total": len(alugueis), "alugueis": alugueis}
 
 
 @router.get("/veiculos/por-comodidade/{id_comodidade}", response_model=Page[Veiculo], summary="Veículos com uma comodidade específica")
@@ -93,10 +95,11 @@ async def veiculos_por_comodidade(id_comodidade: PydanticObjectId):
     if not comodidade:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comodidade não encontrada.")
 
-    return await apaginate(Veiculo.find(
-        {"comodidades.$id": id_comodidade},
-        fetch_links=True
-    ))
+    veiculos = await Veiculo.find(
+        {"comodidades.$id": id_comodidade}
+    ).to_list()
+
+    return {"comodidade": comodidade.nome, "total": len(veiculos), "veiculos": veiculos}
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +140,8 @@ async def buscar_veiculos(
             {"placa": {"$regex": q, "$options": "i"}},
         ]
     }
-    return await apaginate(Veiculo.find(filtro, fetch_links=True))
+    veiculos = await Veiculo.find(filtro).to_list()
+    return {"total": len(veiculos), "veiculos": veiculos}
 
 
 @router.get("/ofertadores/buscar", response_model=Page[Ofertador], summary="Busca de ofertadores por nome ou CNPJ")
@@ -182,10 +186,11 @@ async def alugueis_por_periodo(
             detail="Formato de data inválido. Use YYYY-MM-DD."
         )
 
-    return await apaginate(Aluguel.find(
-        {"data_inicio": {"$gte": dt_inicio, "$lte": dt_fim}},
-        fetch_links=True
-    ))
+    alugueis = await Aluguel.find(
+        {"data_inicio": {"$gte": dt_inicio, "$lte": dt_fim}}
+    ).to_list()
+
+    return {"total": len(alugueis), "alugueis": alugueis}
 
 
 @router.get("/alugueis/por-ano/{ano}", response_model=Page[Aluguel], summary="Aluguéis de um ano específico")
@@ -196,10 +201,11 @@ async def alugueis_por_ano(ano: int):
     Demonstra **filtro por ano** usando o operador `$expr` combinado com `$year`
     do MongoDB para extrair o ano de um campo datetime.
     """
-    return await apaginate(Aluguel.find(
-        {"$expr": {"$eq": [{"$year": "$data_inicio"}, ano]}},
-        fetch_links=True
-    ))
+    alugueis = await Aluguel.find(
+        {"$expr": {"$eq": [{"$year": "$data_inicio"}, ano]}}
+    ).to_list()
+
+    return {"ano": ano, "total": len(alugueis), "alugueis": alugueis}
 
 
 # ---------------------------------------------------------------------------
@@ -213,13 +219,17 @@ async def alugueis_por_status():
 
     Demonstra **aggregation pipeline** com os estágios `$group` e `$sort` do MongoDB.
     """
-    collection: AsyncIOMotorCollection = Aluguel.get_motor_collection()
+    collection = Aluguel.get_pymongo_collection()
     pipeline = [
         {"$group": {"_id": "$status", "total": {"$sum": 1}}},
         {"$sort": {"total": -1}},
         {"$project": {"status": "$_id", "total": 1, "_id": 0}},
     ]
-    resultado = await collection.aggregate(pipeline).to_list(length=None)
+    cursor = collection.aggregate(pipeline)
+    resultado = []
+    async for documento in cursor:
+        resultado.append(documento)
+
     return {"resultado": resultado}
 
 
@@ -230,7 +240,7 @@ async def receita_por_metodo_pagamento():
 
     Demonstra **aggregation pipeline** com `$group` + `$sum` em campo de subdocumento embutido.
     """
-    collection: AsyncIOMotorCollection = Aluguel.get_motor_collection()
+    collection = Aluguel.get_pymongo_collection()
     pipeline = [
         {"$group": {
             "_id": "$pagamento.metodo",
@@ -240,7 +250,10 @@ async def receita_por_metodo_pagamento():
         {"$sort": {"receita_total": -1}},
         {"$project": {"metodo": "$_id", "receita_total": 1, "quantidade": 1, "_id": 0}},
     ]
-    resultado = await collection.aggregate(pipeline).to_list(length=None)
+    cursor = collection.aggregate(pipeline)
+    resultado = []
+    async for documento in cursor:
+        resultado.append(documento)
     return {"resultado": resultado}
 
 
@@ -251,13 +264,16 @@ async def veiculos_por_tipo():
 
     Demonstra **aggregation pipeline** com `$group` + `$count`.
     """
-    collection: AsyncIOMotorCollection = Veiculo.get_motor_collection()
+    collection = Veiculo.get_pymongo_collection()
     pipeline = [
         {"$group": {"_id": "$tipo", "total": {"$sum": 1}}},
         {"$sort": {"total": -1}},
         {"$project": {"tipo": "$_id", "total": 1, "_id": 0}},
     ]
-    resultado = await collection.aggregate(pipeline).to_list(length=None)
+    cursor = collection.aggregate(pipeline)
+    resultado = []
+    async for documento in cursor:
+        resultado.append(documento)
     return {"resultado": resultado}
 
 
@@ -268,7 +284,7 @@ async def media_valor_aluguel():
 
     Demonstra **aggregation pipeline** com `$avg`, `$min` e `$max`.
     """
-    collection: AsyncIOMotorCollection = Aluguel.get_motor_collection()
+    collection = Aluguel.get_pymongo_collection()
     pipeline = [
         {"$group": {
             "_id": None,
@@ -279,7 +295,10 @@ async def media_valor_aluguel():
         }},
         {"$project": {"_id": 0, "media": 1, "minimo": 1, "maximo": 1, "total_alugueis": 1}},
     ]
-    resultado = await collection.aggregate(pipeline).to_list(length=None)
+    cursor = collection.aggregate(pipeline)
+    resultado = []
+    async for documento in cursor:
+        resultado.append(documento)
     return resultado[0] if resultado else {}
 
 
@@ -325,7 +344,6 @@ async def veiculos_ordenados(
     """
     Lista veículos com **ordenação configurável** por campo e direção.
 
-    Demonstra **sort dinâmico** com `fetch_links=True` para resolver os Links do Beanie.
     """
     if campo not in CAMPOS_ORDENACAO_VALIDOS["veiculos"]:
         raise HTTPException(
@@ -333,7 +351,7 @@ async def veiculos_ordenados(
             detail=f"Campo inválido. Use um de: {CAMPOS_ORDENACAO_VALIDOS['veiculos']}"
         )
     direcao = 1 if ordem == "asc" else -1
-    veiculos = await Veiculo.find(fetch_links=True).sort([(campo, direcao)]).limit(limite).to_list()
+    veiculos = await Veiculo.find().sort([(campo, direcao)]).limit(limite).to_list()
     return {"total": len(veiculos), "ordenado_por": campo, "ordem": ordem, "veiculos": veiculos}
 
 
@@ -354,7 +372,7 @@ async def alugueis_ordenados(
             detail=f"Campo inválido. Use um de: {CAMPOS_ORDENACAO_VALIDOS['alugueis']}"
         )
     direcao = 1 if ordem == "asc" else -1
-    alugueis = await Aluguel.find(fetch_links=True).sort([(campo, direcao)]).limit(limite).to_list()
+    alugueis = await Aluguel.find().sort([(campo, direcao)]).limit(limite).to_list()
     return {"total": len(alugueis), "ordenado_por": campo, "ordem": ordem, "alugueis": alugueis}
 
 
@@ -371,7 +389,7 @@ async def alugueis_completos():
     Demonstra **consulta complexa multi-coleção** com pipeline de agregação:
     `alugueis → $lookup → veiculos → $lookup → ofertador → $lookup → clientes`
     """
-    collection: AsyncIOMotorCollection = Aluguel.get_motor_collection()
+    collection = Aluguel.get_pymongo_collection()
     pipeline = [
         {"$lookup": {
             "from": "veiculos",
@@ -406,8 +424,17 @@ async def alugueis_completos():
         }},
         {"$sort": {"data_inicio": -1}},
     ]
-    resultado = await collection.aggregate(pipeline).to_list(length=None)
-    return {"total": len(resultado), "alugueis": resultado}
+    cursor = collection.aggregate(pipeline)
+    alugueis = []
+    async for documento in cursor:
+        if "_id" in documento:
+            documento["_id"] = str(documento["_id"])
+        alugueis.append(documento)
+        
+    return {
+        "total": len(alugueis), 
+        "alugueis": alugueis
+    }
 
 
 @router.get("/lookup/veiculos-com-comodidades", summary="Veículos com comodidades expandidas e ofertador")
@@ -419,7 +446,7 @@ async def veiculos_com_comodidades():
     Demonstra **consulta multi-coleção** que resolve simultaneamente um relacionamento
     1:N (Ofertador → Veiculo) e um N:N (Veiculo ↔ Comodidade) em um único pipeline.
     """
-    collection: AsyncIOMotorCollection = Veiculo.get_motor_collection()
+    collection = Veiculo.get_pymongo_collection()
     pipeline = [
         {"$lookup": {
             "from": "comodidades",
@@ -450,8 +477,17 @@ async def veiculos_com_comodidades():
         }},
         {"$sort": {"total_comodidades": -1}},
     ]
-    resultado = await collection.aggregate(pipeline).to_list(length=None)
-    return {"total": len(resultado), "veiculos": resultado}
+    cursor = collection.aggregate(pipeline)
+    veiculos = []
+    async for documento in cursor:
+        if "_id" in documento:
+            documento["_id"] = str(documento["_id"])
+        veiculos.append(documento)
+        
+    return {
+        "total": len(veiculos), 
+        "veiculos": veiculos
+    }
 
 
 @router.get("/lookup/ranking-ofertadores", summary="Ranking de ofertadores por número de aluguéis")
@@ -463,7 +499,7 @@ async def ranking_ofertadores():
     Demonstra **pipeline de agregação multi-coleção** com `$lookup` encadeado,
     `$group` para agrupar por ofertador e `$sort` para ordenar o ranking.
     """
-    collection: AsyncIOMotorCollection = Aluguel.get_motor_collection()
+    collection = Aluguel.get_pymongo_collection()
     pipeline = [
         {"$lookup": {
             "from": "veiculos",
@@ -493,5 +529,8 @@ async def ranking_ofertadores():
             "receita_total": 1,
         }},
     ]
-    resultado = await collection.aggregate(pipeline).to_list(length=None)
-    return {"ranking": resultado}
+    cursor = collection.aggregate(pipeline)
+    resultado = []
+    async for documento in cursor:
+        resultado.append(documento)
+    return {"resultado": resultado}
