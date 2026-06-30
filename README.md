@@ -22,7 +22,7 @@ classDiagram
     class Veiculo {
         +str id
         +Link~Ofertador~ ofertador
-        +list~Link~Comodidade~~ comodidades
+        +Link~Comodidade~ comodidades
         +str placa
         +str modelo
         +str tipo
@@ -57,12 +57,13 @@ classDiagram
         +int size_bytes
         +datetime created_at
     }
-    Ofertador <-- Veiculo : 1:N - Referencia (Link)
-    Veiculo "*" <--> "*" Comodidade : N:N - Referencia (Link)
-    Veiculo <-- Aluguel : N:1 - Referencia (Link)
-    Cliente <-- Aluguel : N:1 - Referencia (Link)
-    Veiculo <-- Documento : N:1 - Referencia (Link)
-    Aluguel *-- Pagamento : Contém (Embedded)
+
+    Ofertador "1" <-- "*" Veiculo : Referencia(Link)
+    Veiculo "*" <--> "*" Comodidade : Referencia(Link)
+    Veiculo "1" <-- "*" Aluguel : Referencia(Link)
+    Cliente "1" <-- "*" Aluguel : Referencia(Link)
+    Veiculo "1" <-- "*" Documento : Referencia(Link)
+    Aluguel *-- Pagamento : Contem(Embedded)
 ```
 
 ## Como executar
