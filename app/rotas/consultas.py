@@ -41,11 +41,8 @@ async def veiculos_por_ofertador(id_ofertador: PydanticObjectId):
     if not ofertador:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ofertador não encontrado.")
 
-    veiculos = await Veiculo.find(
-        Veiculo.ofertador.id == id_ofertador
-    ).to_list()
-
-    return {"total": len(veiculos), "veiculos": veiculos}
+    query = Veiculo.find(Veiculo.ofertador.id == id_ofertador)
+    return await apaginate(query)
 
 
 @router.get("/alugueis/por-cliente/{id_cliente}", response_model=Page[Aluguel], summary="Aluguéis de um cliente")
@@ -59,11 +56,9 @@ async def alugueis_por_cliente(id_cliente: PydanticObjectId):
     if not cliente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado.")
 
-    alugueis = await Aluguel.find(
-        Aluguel.cliente.id == id_cliente
-    ).to_list()
+    query = Aluguel.find(Aluguel.cliente.id == id_cliente)
 
-    return {"total": len(alugueis), "alugueis": alugueis}
+    return await apaginate(query)
 
 
 @router.get("/alugueis/por-veiculo/{id_veiculo}", response_model=Page[Aluguel], summary="Aluguéis de um veículo")
@@ -77,11 +72,9 @@ async def alugueis_por_veiculo(id_veiculo: PydanticObjectId):
     if not veiculo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veículo não encontrado.")
 
-    alugueis = await Aluguel.find(
-        Aluguel.veiculo.id == id_veiculo
-    ).to_list()
+    query = Aluguel.find(Aluguel.veiculo.id == id_veiculo)
 
-    return {"total": len(alugueis), "alugueis": alugueis}
+    return await apaginate(query)
 
 
 @router.get("/veiculos/por-comodidade/{id_comodidade}", response_model=Page[Veiculo], summary="Veículos com uma comodidade específica")
@@ -95,11 +88,9 @@ async def veiculos_por_comodidade(id_comodidade: PydanticObjectId):
     if not comodidade:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comodidade não encontrada.")
 
-    veiculos = await Veiculo.find(
-        {"comodidades.$id": id_comodidade}
-    ).to_list()
+    query = Veiculo.find({"comodidades.$id": id_comodidade})
 
-    return {"comodidade": comodidade.nome, "total": len(veiculos), "veiculos": veiculos}
+    return await apaginate(query)
 
 
 # ---------------------------------------------------------------------------
@@ -140,8 +131,7 @@ async def buscar_veiculos(
             {"placa": {"$regex": q, "$options": "i"}},
         ]
     }
-    veiculos = await Veiculo.find(filtro).to_list()
-    return {"total": len(veiculos), "veiculos": veiculos}
+    return await apaginate(Veiculo.find(filtro))
 
 
 @router.get("/ofertadores/buscar", response_model=Page[Ofertador], summary="Busca de ofertadores por nome ou CNPJ")
@@ -185,12 +175,11 @@ async def alugueis_por_periodo(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Formato de data inválido. Use YYYY-MM-DD."
         )
+    
+    query = Aluguel.find({"data_inicio": {"$gte": dt_inicio, "$lte": dt_fim}})
 
-    alugueis = await Aluguel.find(
-        {"data_inicio": {"$gte": dt_inicio, "$lte": dt_fim}}
-    ).to_list()
+    return await apaginate(query)
 
-    return {"total": len(alugueis), "alugueis": alugueis}
 
 
 @router.get("/alugueis/por-ano/{ano}", response_model=Page[Aluguel], summary="Aluguéis de um ano específico")
@@ -201,11 +190,10 @@ async def alugueis_por_ano(ano: int):
     Demonstra **filtro por ano** usando o operador `$expr` combinado com `$year`
     do MongoDB para extrair o ano de um campo datetime.
     """
-    alugueis = await Aluguel.find(
-        {"$expr": {"$eq": [{"$year": "$data_inicio"}, ano]}}
-    ).to_list()
 
-    return {"ano": ano, "total": len(alugueis), "alugueis": alugueis}
+    query = Aluguel.find({"$expr": {"$eq": [{"$year": "$data_inicio"}, ano]}})
+
+    return await apaginate(query)
 
 
 # ---------------------------------------------------------------------------

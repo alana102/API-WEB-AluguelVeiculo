@@ -9,6 +9,7 @@ from app.modelos.cliente import Cliente
 from app.modelos.documento import DocumentoModel
 from app.modelos.ofertador import Ofertador
 from app.modelos.veiculo import Veiculo
+from app.modelos.comodidade import Comodidade
 
 from datetime import timedelta, timezone
 from beanie import init_beanie
@@ -30,7 +31,7 @@ async def inicializar_banco():
     
     await init_beanie(
         database=db, 
-        document_models=[Cliente, Veiculo, Ofertador, Aluguel, DocumentoModel]
+        document_models=[Cliente, Veiculo, Ofertador, Aluguel, DocumentoModel, Comodidade]
     )
     print(f" Conectado ao banco: {db_name}")
 
@@ -63,19 +64,42 @@ async def gerar_ofertadores(qtd=100):
     print(f" {len(resultados)} Ofertadores gerados!")
     return resultados
 
-async def gerar_veiculos_e_documentos(ofertadores, qtd=100):
+async def gerar_comodidades_base():
+    nomes_comodidades = [
+        "Ar Condicionado", "Direção Hidráulica", "Câmbio Automático", 
+        "Vidros Elétricos", "Central Multimídia", "Sensor de Ré", 
+        "Câmera de Ré", "Bancos de Couro", "Freios ABS", "Airbag Duplo"
+    ]
+    
+    comodidades_salvas = []
+    for nome in nomes_comodidades:
+        existente = await Comodidade.find_one(Comodidade.nome == nome)
+        if not existente:
+            comodidade = Comodidade(nome=nome, descricao=f"Veículo equipado com {nome.lower()}.")
+            await comodidade.insert()
+            comodidades_salvas.append(comodidade)
+        else:
+            comodidades_salvas.append(existente)
+            
+    print(f" {len(comodidades_salvas)} Comodidades base prontas no banco!")
+    return comodidades_salvas
+
+async def gerar_veiculos_e_documentos(ofertadores,comodidades_disponiveis, qtd=100):
     veiculos_salvos = []
     documentos_tasks = []
 
     print(f" Gerando {qtd} veículos e seus respectivos documentos...")
 
     for _ in range(qtd):
+        comodidades_veiculo = random.sample(comodidades_disponiveis, k=random.randint(1, 4))
+
         veiculo = Veiculo(
             placa=fake.bothify(text="???-#?##").upper(),
             tipo=random.choice(["Carro", "Moto"]),
             modelo=fake.word().capitalize(),
             status=random.choice(["Disponível", "Disponível", "Manutenção"]),
             ofertador=random.choice(ofertadores),
+            comodidades=comodidades_veiculo
         )
 
         await veiculo.insert()
@@ -162,10 +186,13 @@ async def main():
     
     clientes_task = gerar_clientes(qtd=100)
     ofertadores_task = gerar_ofertadores(qtd=100)
+    comodidades_task = gerar_comodidades_base()
     
-    clientes, ofertadores = await asyncio.gather(clientes_task, ofertadores_task)
+    clientes, ofertadores, comodidades = await asyncio.gather(
+        clientes_task, ofertadores_task, comodidades_task
+    )
 
-    veiculos = await gerar_veiculos_e_documentos(ofertadores, qtd=100)
+    veiculos = await gerar_veiculos_e_documentos(ofertadores, comodidades, qtd=100)
     
     await gerar_alugueis(clientes, veiculos, qtd=100)
     
