@@ -12,6 +12,8 @@ Cobre todos os requisitos de busca complexa exigidos no trabalho:
 """
 
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import apaginate
 from beanie import PydanticObjectId
 from motor.motor_asyncio import AsyncIOMotorCollection
 from app.modelos.cliente import Cliente
@@ -28,10 +30,10 @@ router = APIRouter(prefix="/consultas", tags=["Consultas Avançadas"])
 # 1. LISTAGENS FILTRADAS POR RELACIONAMENTOS
 # ---------------------------------------------------------------------------
 
-@router.get("/veiculos/por-ofertador/{id_ofertador}", summary="Veículos de um ofertador")
+@router.get("/veiculos/por-ofertador/{id_ofertador}", response_model=Page[Veiculo], summary="Veículos de um ofertador")
 async def veiculos_por_ofertador(id_ofertador: PydanticObjectId):
     """
-    Retorna todos os veículos cadastrados por um ofertador específico.
+    Retorna os veículos cadastrados por um ofertador específico, de forma paginada.
 
     Demonstra **listagem filtrada por relacionamento 1:N** (Ofertador → Veiculo).
     Utiliza `fetch_links=True` para retornar os dados completos do ofertador junto.
@@ -40,18 +42,16 @@ async def veiculos_por_ofertador(id_ofertador: PydanticObjectId):
     if not ofertador:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ofertador não encontrado.")
 
-    veiculos = await Veiculo.find(
+    return await apaginate(Veiculo.find(
         Veiculo.ofertador.id == id_ofertador,
         fetch_links=True
-    ).to_list()
-
-    return {"total": len(veiculos), "veiculos": veiculos}
+    ))
 
 
-@router.get("/alugueis/por-cliente/{id_cliente}", summary="Aluguéis de um cliente")
+@router.get("/alugueis/por-cliente/{id_cliente}", response_model=Page[Aluguel], summary="Aluguéis de um cliente")
 async def alugueis_por_cliente(id_cliente: PydanticObjectId):
     """
-    Retorna todos os aluguéis associados a um cliente específico.
+    Retorna os aluguéis associados a um cliente específico, de forma paginada.
 
     Demonstra **listagem filtrada por relacionamento N:1** (Cliente → Aluguel).
     """
@@ -59,18 +59,16 @@ async def alugueis_por_cliente(id_cliente: PydanticObjectId):
     if not cliente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado.")
 
-    alugueis = await Aluguel.find(
+    return await apaginate(Aluguel.find(
         Aluguel.cliente.id == id_cliente,
         fetch_links=True
-    ).to_list()
-
-    return {"total": len(alugueis), "alugueis": alugueis}
+    ))
 
 
-@router.get("/alugueis/por-veiculo/{id_veiculo}", summary="Aluguéis de um veículo")
+@router.get("/alugueis/por-veiculo/{id_veiculo}", response_model=Page[Aluguel], summary="Aluguéis de um veículo")
 async def alugueis_por_veiculo(id_veiculo: PydanticObjectId):
     """
-    Retorna todos os aluguéis de um veículo específico.
+    Retorna os aluguéis de um veículo específico, de forma paginada.
 
     Demonstra **listagem filtrada por relacionamento N:1** (Veiculo → Aluguel).
     """
@@ -78,18 +76,16 @@ async def alugueis_por_veiculo(id_veiculo: PydanticObjectId):
     if not veiculo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veículo não encontrado.")
 
-    alugueis = await Aluguel.find(
+    return await apaginate(Aluguel.find(
         Aluguel.veiculo.id == id_veiculo,
         fetch_links=True
-    ).to_list()
-
-    return {"total": len(alugueis), "alugueis": alugueis}
+    ))
 
 
-@router.get("/veiculos/por-comodidade/{id_comodidade}", summary="Veículos com uma comodidade específica")
+@router.get("/veiculos/por-comodidade/{id_comodidade}", response_model=Page[Veiculo], summary="Veículos com uma comodidade específica")
 async def veiculos_por_comodidade(id_comodidade: PydanticObjectId):
     """
-    Retorna todos os veículos que possuem uma comodidade específica.
+    Retorna os veículos que possuem uma comodidade específica, de forma paginada.
 
     Demonstra **listagem filtrada pelo relacionamento N:N** (Veiculo ↔ Comodidade).
     """
@@ -97,24 +93,22 @@ async def veiculos_por_comodidade(id_comodidade: PydanticObjectId):
     if not comodidade:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comodidade não encontrada.")
 
-    veiculos = await Veiculo.find(
+    return await apaginate(Veiculo.find(
         {"comodidades.$id": id_comodidade},
         fetch_links=True
-    ).to_list()
-
-    return {"comodidade": comodidade.nome, "total": len(veiculos), "veiculos": veiculos}
+    ))
 
 
 # ---------------------------------------------------------------------------
 # 2. BUSCA POR TEXTO PARCIAL E CASE-INSENSITIVE ($regex)
 # ---------------------------------------------------------------------------
 
-@router.get("/clientes/buscar", summary="Busca de clientes por nome ou CPF")
+@router.get("/clientes/buscar", response_model=Page[Cliente], summary="Busca de clientes por nome ou CPF")
 async def buscar_clientes(
     q: str = Query(..., description="Texto para busca parcial no nome ou CPF do cliente")
 ):
     """
-    Busca clientes cujo **nome** ou **CPF** contenha o texto informado.
+    Busca clientes cujo **nome** ou **CPF** contenha o texto informado, de forma paginada.
 
     Demonstra **busca por texto parcial e case-insensitive** usando operador `$regex`
     com a opção `i` (ignore case) do MongoDB.
@@ -125,16 +119,15 @@ async def buscar_clientes(
             {"CPF": {"$regex": q, "$options": "i"}},
         ]
     }
-    clientes = await Cliente.find(filtro).to_list()
-    return {"total": len(clientes), "clientes": clientes}
+    return await apaginate(Cliente.find(filtro))
 
 
-@router.get("/veiculos/buscar", summary="Busca de veículos por modelo ou placa")
+@router.get("/veiculos/buscar", response_model=Page[Veiculo], summary="Busca de veículos por modelo ou placa")
 async def buscar_veiculos(
     q: str = Query(..., description="Texto para busca parcial no modelo ou placa do veículo")
 ):
     """
-    Busca veículos cujo **modelo** ou **placa** contenha o texto informado.
+    Busca veículos cujo **modelo** ou **placa** contenha o texto informado, de forma paginada.
 
     Demonstra **busca por texto parcial e case-insensitive** usando `$regex`.
     """
@@ -144,16 +137,15 @@ async def buscar_veiculos(
             {"placa": {"$regex": q, "$options": "i"}},
         ]
     }
-    veiculos = await Veiculo.find(filtro, fetch_links=True).to_list()
-    return {"total": len(veiculos), "veiculos": veiculos}
+    return await apaginate(Veiculo.find(filtro, fetch_links=True))
 
 
-@router.get("/ofertadores/buscar", summary="Busca de ofertadores por nome ou CNPJ")
+@router.get("/ofertadores/buscar", response_model=Page[Ofertador], summary="Busca de ofertadores por nome ou CNPJ")
 async def buscar_ofertadores(
     q: str = Query(..., description="Texto para busca parcial no nome ou CNPJ do ofertador")
 ):
     """
-    Busca ofertadores cujo **nome** ou **CNPJ** contenha o texto informado.
+    Busca ofertadores cujo **nome** ou **CNPJ** contenha o texto informado, de forma paginada.
 
     Demonstra **busca por texto parcial e case-insensitive** usando `$regex`.
     """
@@ -163,21 +155,20 @@ async def buscar_ofertadores(
             {"CNPJ": {"$regex": q, "$options": "i"}},
         ]
     }
-    ofertadores = await Ofertador.find(filtro).to_list()
-    return {"total": len(ofertadores), "ofertadores": ofertadores}
+    return await apaginate(Ofertador.find(filtro))
 
 
 # ---------------------------------------------------------------------------
 # 3. FILTROS POR DATA/ANO
 # ---------------------------------------------------------------------------
 
-@router.get("/alugueis/por-periodo", summary="Aluguéis em um intervalo de datas")
+@router.get("/alugueis/por-periodo", response_model=Page[Aluguel], summary="Aluguéis em um intervalo de datas")
 async def alugueis_por_periodo(
     data_inicio: str = Query(..., description="Data inicial no formato YYYY-MM-DD"),
     data_fim: str = Query(..., description="Data final no formato YYYY-MM-DD"),
 ):
     """
-    Retorna aluguéis cuja `data_inicio` esteja dentro do intervalo informado.
+    Retorna aluguéis cuja `data_inicio` esteja dentro do intervalo informado, de forma paginada.
 
     Demonstra **filtro por data** usando os operadores `$gte` e `$lte` do MongoDB.
     """
@@ -191,28 +182,24 @@ async def alugueis_por_periodo(
             detail="Formato de data inválido. Use YYYY-MM-DD."
         )
 
-    alugueis = await Aluguel.find(
+    return await apaginate(Aluguel.find(
         {"data_inicio": {"$gte": dt_inicio, "$lte": dt_fim}},
         fetch_links=True
-    ).to_list()
-
-    return {"total": len(alugueis), "alugueis": alugueis}
+    ))
 
 
-@router.get("/alugueis/por-ano/{ano}", summary="Aluguéis de um ano específico")
+@router.get("/alugueis/por-ano/{ano}", response_model=Page[Aluguel], summary="Aluguéis de um ano específico")
 async def alugueis_por_ano(ano: int):
     """
-    Retorna todos os aluguéis iniciados em um determinado ano.
+    Retorna todos os aluguéis iniciados em um determinado ano, de forma paginada.
 
     Demonstra **filtro por ano** usando o operador `$expr` combinado com `$year`
     do MongoDB para extrair o ano de um campo datetime.
     """
-    alugueis = await Aluguel.find(
+    return await apaginate(Aluguel.find(
         {"$expr": {"$eq": [{"$year": "$data_inicio"}, ano]}},
         fetch_links=True
-    ).to_list()
-
-    return {"ano": ano, "total": len(alugueis), "alugueis": alugueis}
+    ))
 
 
 # ---------------------------------------------------------------------------
