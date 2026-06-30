@@ -1,5 +1,17 @@
 Alana Maria
+- Implementou a lógica de armazenamento de arquivos no MinIO, associando documentos a entidades sem salvar os arquivos diretamente no banco.
+- Desenvolveu o script de carga que povoa o banco de dados com mais de 100 registros.
+- Desenvolveu as rotas específicas para a gestão de Documentos.
+- Configurou a infraestrutura do projeto, incluindo Docker e variáveis de ambiente.
 
 Clara Cruz
+- Elaborou o diagrama de classes utilizando a sintaxe Mermaid.
+- Realizou a modelagem das entidades utilizando Beanie e Pydantic.
+- Configurou os relacionamentos entre as coleções, incluindo referências e documentos embutidos.
+- Aplicou a documentação técnica em todos os modelos, esquemas e rotas.
+- Implementou o CRUD base, tratamento global de exceções e a paginação das listagens.
 
 Vitor Nayan
+- Implementou o CRUD completo das entidades Cliente, Ofertador, Aluguel e Pagamento.
+- Desenvolveu as consultas complexas, agregações e estatísticas de dados.
+- Garantiu a qualidade da documentação gerada no Swagger e organizou o repositório.
