@@ -15,6 +15,16 @@ router = APIRouter(prefix="/veiculos", tags=["Veiculos"])
 
 @router.post("/", response_model=Veiculo, status_code=status.HTTP_201_CREATED)
 async def criar_veiculo(veiculo_in: CriarVeiculo):
+    """
+    Cadastra um novo veículo vinculado a um ofertador.
+
+    Relacionamentos e Efeitos:
+    - Ofertador: Valida se o ofertador existe e se está com status 'Ativo'.
+    
+    Erros:
+    - 404: Se o ofertador informado não existir.
+    - 400: Se o ofertador estiver inativo.
+    """
     ofertador = await Ofertador.get(veiculo_in.id_ofertador)
 
     if not ofertador:
@@ -39,6 +49,15 @@ async def criar_veiculo(veiculo_in: CriarVeiculo):
 
 @router.put("/{id}", response_model=Veiculo)
 async def atualizar_veiculo(id: PydanticObjectId, veiculo_atualizado: AtualizarVeiculo):
+    """
+    Atualiza os dados cadastrais de um veículo.
+
+    Efeitos:
+    - Modifica campos como placa, modelo, tipo ou status.
+    
+    Erros:
+    - 404: Se o ID do veículo não for encontrado.
+    """
     veiculo = await Veiculo.get(id);
     if not veiculo:
         raise HTTPException(
@@ -63,6 +82,14 @@ async def atualizar_veiculo(id: PydanticObjectId, veiculo_atualizado: AtualizarV
 
 @router.delete("/{id}")
 async def deletar_veiculo(id: PydanticObjectId):
+    """
+    Remove um veículo permanentemente do sistema.
+
+    Nota: A operação pode falhar se o veículo estiver vinculado a aluguéis ativos.
+    
+    Erros:
+    - 404: Caso o veículo não seja encontrado.
+    """
     veiculo = await Veiculo.get(id)
     if not veiculo:
         raise HTTPException(
@@ -75,6 +102,12 @@ async def deletar_veiculo(id: PydanticObjectId):
 
 @router.get("/{id}", response_model=Veiculo)
 async def buscar_veiculo(id: str):
+    """
+    Recupera os detalhes de um veículo específico por ID.
+
+    Erros:
+    - 404: Caso o ID não exista.
+    """
     veiculo = await Veiculo.get(id)
     if not veiculo:
         raise HTTPException(
@@ -85,6 +118,12 @@ async def buscar_veiculo(id: str):
 
 @router.get("/", response_model=Page[Veiculo])
 async def listar_veiculos(params: Params = Depends()):
+    """
+    Lista todos os veículos cadastrados com suporte a paginação.
+
+    Retorna:
+    - Uma página contendo a lista de veículos.
+    """
     try:
         return await apaginate(Veiculo, params)
     except Exception as e:
@@ -96,6 +135,21 @@ async def listar_veiculos(params: Params = Depends()):
 
 @router.post("/{id}/documents", response_model=DocumentoModel, status_code=status.HTTP_201_CREATED)
 async def upload_documento_veiculo(id: PydanticObjectId, file: UploadFile = File(...)):
+    """
+    Faz o upload de um documento para o MinIO e registra seus metadados.
+
+    Fluxo:
+    1. Valida existência do veículo.
+    2. Persiste metadados (nome, extensão, tamanho) no MongoDB.
+    3. Envia o arquivo físico para o bucket do MinIO.
+    
+    Tratamento de erro:
+    - Remove os metadados do MongoDB caso o upload para o MinIO falhe.
+    
+    Erros:
+    - 404: Caso o veículo não seja encontrado.
+    - 500: Erro no processamento ou na comunicação com o MinIO.
+    """
     veiculo = await Veiculo.get(id)
 
     if not veiculo:

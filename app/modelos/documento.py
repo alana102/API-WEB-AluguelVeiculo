@@ -6,6 +6,12 @@ from pydantic import Field
 from app.modelos.veiculo import Veiculo
 
 class DocumentoModel(BeanieDocument):
+    """
+    Representa os metadados de arquivos armazenados no storage (MinIO).
+
+    Relacionamentos:
+    - Veículo: O ativo ao qual o documento está vinculado (N:1).
+    """
     original_filename: str = Field(..., description="Nome original do ficheiro enviado")
     content_type: str = Field(..., description="MIME type do ficheiro (ex: application/pdf)")
     extension: str = Field(..., description="Extensão do arquivo")

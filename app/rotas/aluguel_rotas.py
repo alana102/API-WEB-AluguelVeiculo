@@ -13,6 +13,17 @@ router = APIRouter(prefix="/alugueis", tags=["Alugueis"])
 
 @router.post("/", response_model=Aluguel, status_code=status.HTTP_201_CREATED)
 async def criar_aluguel(aluguel_in: CriarAluguel):
+    """
+    Registra um novo contrato de locação no sistema.
+
+    Relacionamentos e Efeitos:
+    - Cliente: Valida se o cliente está 'Ativo'.
+    - Veículo: Valida disponibilidade e altera status para 'Alugado'.
+    
+    Erros:
+    - 404: Caso o cliente ou veículo não existam.
+    - 400: Caso o cliente esteja inativo ou o veículo indisponível.
+    """
     cliente = await Cliente.get(aluguel_in.id_cliente)
     if not cliente:
         raise HTTPException(
@@ -50,7 +61,17 @@ async def criar_aluguel(aluguel_in: CriarAluguel):
 
 @router.put("/{id}", response_model=Aluguel)
 async def atualizar_aluguel(id: PydanticObjectId, aluguel_atualizado: AtualizarAluguel):
-    aluguel = await Aluguel.get(id)
+    """
+    Atualiza dados de um aluguel e gerencia o status do veículo.
+
+    Relacionamentos e Efeitos:
+    - Veículo: Se o status mudar para 'Concluído' ou 'Cancelado', 
+      o veículo é liberado para 'Disponível'.
+      
+    Erros:
+    - 404: Caso o aluguel não seja encontrado.
+    """
+    aluguel = await Aluguel.get(id, fetch_links=True)
 
     if not aluguel:
         raise HTTPException(
@@ -74,6 +95,17 @@ async def atualizar_aluguel(id: PydanticObjectId, aluguel_atualizado: AtualizarA
 
 @router.post("/{id}/pagar", response_model=Aluguel)
 async def pagar_aluguel(id:PydanticObjectId, pagamento_in: CriarPagamento):
+    """
+    Registra o pagamento de um aluguel e finaliza o contrato.
+
+    Relacionamentos e Efeitos:
+    - Pagamento: Adiciona o registro financeiro ao documento do aluguel.
+    - Veículo: Atualiza status para 'Disponível' automaticamente.
+    
+    Erros:
+    - 400: Caso o aluguel já possua um pagamento registrado.
+    - 404: Caso o aluguel não seja encontrado.
+    """
     aluguel = await Aluguel.get(id)
     if not aluguel:
         raise HTTPException(
@@ -102,6 +134,15 @@ async def pagar_aluguel(id:PydanticObjectId, pagamento_in: CriarPagamento):
 
 @router.delete("/{id}")
 async def deletar_aluguel(id: PydanticObjectId):
+    """
+    Remove um registro de aluguel e libera o veículo associado.
+
+    Efeitos:
+    - Veículo: O veículo vinculado é retornado ao status 'Disponível'.
+    
+    Erros:
+    - 404: Caso o aluguel não seja encontrado.
+    """
     aluguel = await Aluguel.get(id)
     if not aluguel:
         raise HTTPException(
@@ -115,6 +156,12 @@ async def deletar_aluguel(id: PydanticObjectId):
 
 @router.get("/{id}", response_model=Aluguel)
 async def buscar_aluguel(id: PydanticObjectId):
+    """
+    Retorna os detalhes de um aluguel específico.
+
+    Erros:
+    - 404: Caso o ID informado não exista no banco.
+    """
     aluguel = await Aluguel.get(id)
     if not aluguel:
         raise HTTPException(
@@ -125,6 +172,12 @@ async def buscar_aluguel(id: PydanticObjectId):
 
 @router.get("/", response_model=Page[Aluguel])
 async def listar_aluguel(params: Params = Depends()):
+    """
+    Lista todos os aluguéis registrados com suporte a paginação.
+
+    Retorna:
+    - Uma página de objetos Aluguel com metadados de paginação.
+    """
     try:
         return await apaginate(Aluguel, params)
     except Exception as e:
